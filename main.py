@@ -14,12 +14,13 @@ from core.emojis import E
 from core.ui_helper import UIHelper, UserRoles
 from core.database import SentienceEngine, FeaturesModule, LightLogicEngine
 
-# Cog Imports (Nhớ tự nhét ba cái file cogs còn lại vô đây)
+# Cog Imports
 from cogs.admin import AdminCog
 from cogs.rpg_empire import EmpireRPG, setup_rpg_slash
 from cogs.economy import EconomyCog
 from cogs.roleplay import RoleplayCog
 from cogs.utils import UtilsCog
+from cogs.minigames import MinigamesCog # <--- TUI THÊM LẠI CÁI SÒNG BẠC CHO ÔNG RỒI NÈ
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S', handlers=[logging.StreamHandler(sys.stdout)])
@@ -30,19 +31,24 @@ log_werkzeug = logging.getLogger('werkzeug'); log_werkzeug.setLevel(logging.ERRO
 web_app = Flask(__name__)
 @web_app.route('/')
 def home(): return jsonify({"status": "active", "version": "v27.3.0_SUPREME_16+", "type": "interactive_bot"})
+
+# <--- SỬA LẠI CÁI PORT CỦA RAILWAY Ở ĐÂY NÈ --->
 def run_flask():
-    try: web_app.run(host='0.0.0.0', port=7860, debug=False, threaded=True)
-    except Exception as e: logger.error(f"❌ Flask error: {e}")
+    try: 
+        port = int(os.getenv("PORT", 7860))
+        web_app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
+    except Exception as e: 
+        logger.error(f"❌ Flask error: {e}")
 
 class CommandSystem:
     def __init__(self, bot_instance): 
         self.bot = bot_instance; self.commands = {}
         
-        # Gọi mấy cái thư mục Cogs ra đăng ký nè Wy!
         AdminCog(self).register()
         EconomyCog(self).register()
         RoleplayCog(self).register()
         UtilsCog(self).register()
+        MinigamesCog(self).register() # <--- GỌI SÒNG BẠC RA MỞ CỬA NÈ
         
     async def execute(self, command: str, msg: discord.Message, args: list) -> str:
         cmd = self.commands.get(command.lower())
@@ -88,7 +94,6 @@ class LyraBot(discord.Client):
         self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self):
-        # SLASH LỆNH ẨN DANH CỦA ÔNG
         @self.tree.command(name="confess", description="Phun 1 bãi Ẩn Danh Cáo Trạng")
         async def slash_confess(interaction: discord.Interaction, noi_dung: str):
             await interaction.channel.send(embed=UIHelper.create_embed("💌 ẨN DANH", f"> *\"{noi_dung}\"*", discord.Colour.pink(), footer="Tui khum khai bạn ra đâu cứ xả đi."))
@@ -101,7 +106,7 @@ class LyraBot(discord.Client):
                 await interaction.response.send_message(f"✅ Đã dội bom hộp thư DM của thanh niên {nguoi_nhan.name}!", ephemeral=True)
             except Exception as e: await interaction.response.send_message(f"❌ Khứa đó khóa khe DM người lạ rồi quê quá!", ephemeral=True)
 
-        setup_rpg_slash(self) # Nhét khối slash rpg vào
+        setup_rpg_slash(self)
         await self.tree.sync()
         
         self.bg_task = self.loop.create_task(self._reminder_loop())
